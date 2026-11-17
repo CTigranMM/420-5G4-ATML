@@ -1,7 +1,7 @@
 # Initialisation de la base de l'interface GUI Python
 
 **Session ID:** ses_a860589a256141989a56bfbbff1170d2
-**Created:** 11/13/2026, 9:19:45 PM
+**Created:** 11/16/2026, 9:19:45 PM
 **Updated:** 11/16/2026, 10:24:50 PM
 
 ---
