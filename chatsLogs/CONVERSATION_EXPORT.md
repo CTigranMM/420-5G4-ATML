@@ -1,8 +1,8 @@
 # Initialisation de la base de l'interface GUI Python
 
 **Session ID:** ses_a860589a256141989a56bfbbff1170d2
-**Created:** 11/16/2026, 9:19:45 PM
-**Updated:** 11/16/2026, 10:13:04 PM
+**Created:** 11/13/2026, 9:19:45 PM
+**Updated:** 11/16/2026, 10:24:50 PM
 
 ---
 
@@ -300,3 +300,34 @@ Toutes les fonctionnalités C++ manquantes ont été vérifiées et intégrées 
 - `bibliotheque_api.py` expose maintenant `get_available_books`, `find_book_by_isbn`, `search_books_by_title`, `search_books_by_author`, `get_stats` et `create_backup`.
 - `BooksPage` permet la recherche par `Tout`, `ISBN`, `Titre` ou `Auteur` en plus du filtre `Livre disponible`.
 - `StatsPage` (`agent/gui/ui/pages/Stats.py`) affiche le total des livres, les livres disponibles, les livres empruntés et le nombre total d'utilisateurs, avec le bouton `Sauvegarder` (et `Créer backup (.backup)`) en dessous.
+
+
+---
+
+## User
+
+Maintenant qu'on a fini a faire le projet, update le markdoen d'agent
+
+---
+
+## Assistant (Build · deepseek-v4.1-flash:cloud · 1.5s)
+
+_Thinking:_
+
+Let me update `agent/AGENTS.md` to document the completed `pybind11` bindings (`bindings/bindings.cpp`), the `customtkinter` GUI (`gui/`), the integration tests (`tests/test_bridge.py`), the UI mockups (`Maquette/`), and the build/run instructions for both the C++ CLI and Python GUI.
+
+**Tool: write**
+
+**Input:**
+```json
+{
+  "file": "agent/AGENTS.md"
+}
+```
+
+**Output:**
+```
+Updated agent/AGENTS.md.
+```
+
+Le fichier `agent/AGENTS.md` a été mis à jour avec la structure complète du projet (`bindings/`, `gui/`, `tests/`, `Maquette/`), les instructions de compilation `CMake` + `pybind11`, le lancement de l'interface `customtkinter` et l'exécution des tests.
