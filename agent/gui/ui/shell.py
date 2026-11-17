@@ -23,6 +23,7 @@ class AppShell(ctk.CTk):
         self.configure(fg_color=COLORS["bg_main"])
 
         self.api = api
+        self.protocol("WM_DELETE_WINDOW", self._on_close)
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(1, weight=1)
 
@@ -54,3 +55,7 @@ class AppShell(ctk.CTk):
         page.tkraise()
         page.on_show()
         self.nav_bar.set_active(key)
+
+    def _on_close(self) -> None:
+        self.api.save()
+        self.destroy()

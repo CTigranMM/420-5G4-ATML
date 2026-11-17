@@ -1,4 +1,4 @@
-"""Users management page matching Page Membre.png mockup."""
+"""Users management page connected to BibliothequeAPI."""
 
 import customtkinter as ctk
 
@@ -9,8 +9,76 @@ from ui.table import ScrollableList
 from ui.widgets import ItemRowCard
 
 
+class AddUserDialog(ctk.CTkToplevel):
+    """Modal dialog to add a new library user."""
+
+    def __init__(self, master, on_submit) -> None:
+        super().__init__(master)
+        self.title("Ajouter un membre")
+        self.geometry("340x210")
+        self.resizable(False, False)
+        self.transient(master)
+        self.grab_set()
+        self._on_submit = on_submit
+
+        self.grid_columnconfigure(0, weight=1)
+
+        self.name_entry = ctk.CTkEntry(self, placeholder_text="Nom complet")
+        self.name_entry.grid(row=0, column=0, padx=20, pady=(20, 8), sticky="ew")
+
+        self.id_entry = ctk.CTkEntry(self, placeholder_text="ID utilisateur (ex: U001)")
+        self.id_entry.grid(row=1, column=0, padx=20, pady=8, sticky="ew")
+
+        self.error_label = ctk.CTkLabel(self, text="", text_color=COLORS["danger"], font=FONTS["small"])
+        self.error_label.grid(row=2, column=0, padx=20, pady=4, sticky="w")
+
+        ctk.CTkButton(self, text="Ajouter", command=self._submit).grid(
+            row=3, column=0, padx=20, pady=(8, 16), sticky="e"
+        )
+
+    def _submit(self) -> None:
+        ok, msg = self._on_submit(self.name_entry.get(), self.id_entry.get())
+        if ok:
+            self.destroy()
+        else:
+            self.error_label.configure(text=msg)
+
+
+class EditUserDialog(ctk.CTkToplevel):
+    """Modal dialog to rename an existing user."""
+
+    def __init__(self, master, current_name: str, on_submit) -> None:
+        super().__init__(master)
+        self.title("Modifier le membre")
+        self.geometry("340x170")
+        self.resizable(False, False)
+        self.transient(master)
+        self.grab_set()
+        self._on_submit = on_submit
+
+        self.grid_columnconfigure(0, weight=1)
+
+        self.name_entry = ctk.CTkEntry(self, placeholder_text="Nom complet")
+        self.name_entry.insert(0, current_name)
+        self.name_entry.grid(row=0, column=0, padx=20, pady=(20, 8), sticky="ew")
+
+        self.error_label = ctk.CTkLabel(self, text="", text_color=COLORS["danger"], font=FONTS["small"])
+        self.error_label.grid(row=1, column=0, padx=20, pady=4, sticky="w")
+
+        ctk.CTkButton(self, text="Enregistrer", command=self._submit).grid(
+            row=2, column=0, padx=20, pady=(8, 16), sticky="e"
+        )
+
+    def _submit(self) -> None:
+        ok, msg = self._on_submit(self.name_entry.get())
+        if ok:
+            self.destroy()
+        else:
+            self.error_label.configure(text=msg)
+
+
 class UsersPage(BasePage):
-    """Displays library members with search, add, edit, and delete actions."""
+    """Displays library members with search, add, and edit actions."""
 
     def __init__(self, master, api) -> None:
         super().__init__(master, api)
@@ -56,7 +124,12 @@ class UsersPage(BasePage):
         self.add_btn.grid(row=0, column=2, padx=(0, 8))
 
         self.list_frame = ScrollableList(self)
-        self.list_frame.grid(row=1, column=0, padx=18, pady=(0, 18), sticky="nsew")
+        self.list_frame.grid(row=1, column=0, padx=18, pady=(0, 8), sticky="nsew")
+
+        self.feedback_label = ctk.CTkLabel(
+            self, text="", font=FONTS["small"], text_color=COLORS["text_light"], anchor="w"
+        )
+        self.feedback_label.grid(row=2, column=0, padx=24, pady=(0, 12), sticky="ew")
 
     def refresh(self) -> None:
         self.list_frame.clear()
@@ -70,16 +143,26 @@ class UsersPage(BasePage):
             row = ItemRowCard(
                 self.list_frame,
                 text=text,
-                on_delete=lambda uid=user.user_id: self._on_delete_clicked(uid),
-                on_edit=lambda uid=user.user_id: self._on_edit_clicked(uid),
+                on_edit=lambda uid=user.user_id, uname=user.name: self._on_edit_clicked(uid, uname),
             )
             self.list_frame.add_row(row)
 
     def _on_add_clicked(self) -> None:
-        pass
+        def submit(name: str, user_id: str):
+            ok, msg = self.api.add_user(name, user_id)
+            if ok:
+                self.feedback_label.configure(text=msg)
+                self.refresh()
+            return ok, msg
 
-    def _on_delete_clicked(self, user_id: str) -> None:
-        pass
+        AddUserDialog(self, submit)
 
-    def _on_edit_clicked(self, user_id: str) -> None:
-        pass
+    def _on_edit_clicked(self, user_id: str, current_name: str) -> None:
+        def submit(new_name: str):
+            ok, msg = self.api.update_user_name(user_id, new_name)
+            if ok:
+                self.feedback_label.configure(text=msg)
+                self.refresh()
+            return ok, msg
+
+        EditUserDialog(self, current_name, submit)
