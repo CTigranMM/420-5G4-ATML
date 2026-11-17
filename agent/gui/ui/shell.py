@@ -6,6 +6,7 @@ import customtkinter as ctk
 from bibliotheque_api import BibliothequeAPI
 from theme import COLORS
 from ui.nav_bar import NavBar
+from ui.pages.Stats import StatsPage
 from ui.pages.base import BasePage
 from ui.pages.books import BooksPage
 from ui.pages.settings import SettingsPage
@@ -18,8 +19,8 @@ class AppShell(ctk.CTk):
     def __init__(self, api: BibliothequeAPI) -> None:
         super().__init__()
         self.title("Bibliothèque")
-        self.geometry("1020x620")
-        self.minsize(840, 520)
+        self.geometry("1040x640")
+        self.minsize(860, 520)
         self.configure(fg_color=COLORS["bg_main"])
 
         self.api = api
@@ -31,6 +32,7 @@ class AppShell(ctk.CTk):
             ("books", "Livre/catalogue"),
             ("users", "Membre/utilisateur"),
             ("loans", "Prêt & retours"),
+            ("stats", "Statistiques"),
         )
         self.nav_bar = NavBar(self, items=nav_items, on_select=self.show_page)
         self.nav_bar.grid(row=0, column=0, sticky="nsw")
@@ -44,6 +46,7 @@ class AppShell(ctk.CTk):
             "books": BooksPage(self.content, self.api),
             "users": UsersPage(self.content, self.api),
             "loans": SettingsPage(self.content, self.api),
+            "stats": StatsPage(self.content, self.api),
         }
         for page in self.pages.values():
             page.grid(row=0, column=0, sticky="nsew")

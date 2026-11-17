@@ -52,7 +52,7 @@ class AddBookDialog(ctk.CTkToplevel):
 
 
 class BooksPage(BasePage):
-    """Displays the book catalog with search, availability filter, and actions."""
+    """Displays the book catalog with search (ISBN/Titre/Auteur), availability filter, and actions."""
 
     def __init__(self, master, api) -> None:
         super().__init__(master, api)
@@ -61,19 +61,27 @@ class BooksPage(BasePage):
         toolbar = ctk.CTkFrame(self, fg_color="transparent")
         toolbar.grid(row=0, column=0, padx=24, pady=(20, 10), sticky="ew")
 
-        ctk.CTkLabel(
+        self.search_mode_var = ctk.StringVar(value="Tout")
+        self.search_mode = ctk.CTkOptionMenu(
             toolbar,
-            text="ISBN",
-            font=FONTS["body"],
-            text_color=COLORS["text_light"],
-        ).grid(row=0, column=0, padx=(0, 10))
+            values=["Tout", "ISBN", "Titre", "Auteur"],
+            variable=self.search_mode_var,
+            width=95,
+            height=34,
+            corner_radius=RADIUS["button"],
+            fg_color=COLORS["bg_button"],
+            button_color=COLORS["bg_button_hover"],
+            text_color=COLORS["text_primary"],
+            command=lambda _: self.refresh(),
+        )
+        self.search_mode.grid(row=0, column=0, padx=(0, 10))
 
         self.search_var = ctk.StringVar()
         self.search_entry = ctk.CTkEntry(
             toolbar,
             textvariable=self.search_var,
             placeholder_text=ICON_SEARCH,
-            width=200,
+            width=190,
             height=34,
             corner_radius=RADIUS["input"],
             fg_color=COLORS["bg_input"],
@@ -86,7 +94,7 @@ class BooksPage(BasePage):
         self.add_btn = ctk.CTkButton(
             toolbar,
             text=ICON_ADD,
-            width=110,
+            width=100,
             height=34,
             corner_radius=RADIUS["button"],
             fg_color=COLORS["bg_button"],
@@ -95,7 +103,7 @@ class BooksPage(BasePage):
             font=FONTS["body"],
             command=self._on_add_clicked,
         )
-        self.add_btn.grid(row=0, column=2, padx=(0, 16))
+        self.add_btn.grid(row=0, column=2, padx=(0, 14))
 
         self.available_only_var = ctk.BooleanVar(value=False)
         self.available_check = ctk.CTkCheckBox(
@@ -120,13 +128,31 @@ class BooksPage(BasePage):
 
     def refresh(self) -> None:
         self.list_frame.clear()
-        query = self.search_var.get().strip().lower()
+        query = self.search_var.get().strip()
+        mode = self.search_mode_var.get()
         only_avail = self.available_only_var.get()
 
-        for book in self.api.get_all_books():
+        if not query:
+            books = self.api.get_available_books() if only_avail else self.api.get_all_books()
+        elif mode == "ISBN":
+            found = self.api.find_book_by_isbn(query)
+            books = [found] if found is not None else []
+        elif mode == "Titre":
+            books = self.api.search_books_by_title(query)
+        elif mode == "Auteur":
+            books = self.api.search_books_by_author(query)
+        else:
+            q_lower = query.lower()
+            base = self.api.get_available_books() if only_avail else self.api.get_all_books()
+            books = [
+                b for b in base
+                if q_lower in b.isbn.lower()
+                or q_lower in b.title.lower()
+                or q_lower in b.author.lower()
+            ]
+
+        for book in books:
             if only_avail and not book.is_available:
-                continue
-            if query and query not in book.isbn.lower() and query not in book.title.lower():
                 continue
             status = "Disponible" if book.is_available else f"Emprunté ({book.borrower_id})"
             text = f"{book.title} — {book.author} | ISBN: {book.isbn} | {status}"

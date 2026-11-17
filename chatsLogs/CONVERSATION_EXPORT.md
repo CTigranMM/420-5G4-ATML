@@ -2,7 +2,7 @@
 
 **Session ID:** ses_a860589a256141989a56bfbbff1170d2
 **Created:** 11/16/2026, 9:19:45 PM
-**Updated:** 11/16/2026, 10:04:27 PM
+**Updated:** 11/16/2026, 10:13:04 PM
 
 ---
 
@@ -244,3 +244,59 @@ OK
 Le problème est corrigé :
 - `bibliotheque_api.py` utilise `bibliotheque_cpp` lorsqu'il est compilé (dans le Dev Container via `cmake .. && make`) et bascule automatiquement sur `data/books.txt` et `data/users.txt` en mode fallback Python sur Windows.
 - Pour lancer l'interface dans VS Code sans erreur `customtkinter`, sélectionnez l'interpréteur `agent/gui/.venv/Scripts/python.exe` ou exécutez `python app.py` dans le terminal `.venv`.
+
+
+---
+
+## User
+
+Verifie les fonction qu'on a creer dans le c++ et ajoute les feature dans le ui. Plus fait un page de statistique qui nous donne un overview de livre total, livre disponible, livre emprunter et nb total de user et en sous un boutton sauvegarder
+
+---
+
+## Assistant (Build · deepseek-v4.1-flash:cloud · 2.9s)
+
+_Thinking:_
+
+Let me compare `library.h`, `filemanager.h`, and `bindings/bindings.cpp` against `bibliotheque_api.py` and the UI pages. The C++ functions `searchBooksByTitle`, `searchBooksByAuthor`, `findBookByISBN`, `getAvailableBooks`, `getTotalBooks`, `getAvailableBookCount`, `getCheckedOutBookCount`, and `FileManager::createBackup` are exposed in C++ but not yet wired in the Python API and UI. I will add them to `bibliotheque_api.py`, add a search mode selector (`Tout`, `ISBN`, `Titre`, `Auteur`) in `books.py`, implement `StatsPage` in `agent/gui/ui/pages/Stats.py` with the 4 overview metrics and `Sauvegarder` / `Créer backup (.backup)` buttons, register it in `shell.py`, and extend `test_bridge.py`.
+
+**Tool: write**
+
+**Input:**
+```json
+{
+  "files": [
+    "agent/gui/bibliotheque_api.py",
+    "agent/gui/ui/pages/books.py",
+    "agent/gui/ui/pages/Stats.py",
+    "agent/gui/ui/shell.py",
+    "agent/tests/test_bridge.py"
+  ]
+}
+```
+
+**Output:**
+```
+Updated 5 files.
+```
+
+**Tool: bash**
+
+**Input:**
+```json
+{
+  "command": "agent/gui/.venv/Scripts/python.exe -m py_compile agent/gui/bibliotheque_api.py agent/gui/ui/pages/books.py agent/gui/ui/pages/Stats.py agent/gui/ui/shell.py agent/tests/test_bridge.py && agent/gui/.venv/Scripts/python.exe agent/tests/test_bridge.py"
+}
+```
+
+**Output:**
+```
+Ran 4 tests in 0.025s
+
+OK
+```
+
+Toutes les fonctionnalités C++ manquantes ont été vérifiées et intégrées :
+- `bibliotheque_api.py` expose maintenant `get_available_books`, `find_book_by_isbn`, `search_books_by_title`, `search_books_by_author`, `get_stats` et `create_backup`.
+- `BooksPage` permet la recherche par `Tout`, `ISBN`, `Titre` ou `Auteur` en plus du filtre `Livre disponible`.
+- `StatsPage` (`agent/gui/ui/pages/Stats.py`) affiche le total des livres, les livres disponibles, les livres empruntés et le nombre total d'utilisateurs, avec le bouton `Sauvegarder` (et `Créer backup (.backup)`) en dessous.

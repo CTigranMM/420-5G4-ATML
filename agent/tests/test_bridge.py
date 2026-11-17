@@ -32,6 +32,23 @@ class TestBridge(unittest.TestCase):
         self.assertTrue(ok)
         self.assertEqual(len(self.api.get_all_books()), 0)
 
+    def test_search_and_stats(self) -> None:
+        self.api.add_book("1984", "George Orwell", "ISBN-1")
+        self.api.add_book("Dune", "Frank Herbert", "ISBN-2")
+        self.api.add_user("Alice", "U1")
+        self.api.checkout_book("ISBN-1", "U1")
+
+        self.assertIsNotNone(self.api.find_book_by_isbn("ISBN-1"))
+        self.assertEqual(len(self.api.search_books_by_title("dun")), 1)
+        self.assertEqual(len(self.api.search_books_by_author("orwell")), 1)
+        self.assertEqual(len(self.api.get_available_books()), 1)
+
+        stats = self.api.get_stats()
+        self.assertEqual(stats["total_books"], 2)
+        self.assertEqual(stats["available_books"], 1)
+        self.assertEqual(stats["checked_out_books"], 1)
+        self.assertEqual(stats["total_users"], 1)
+
     def test_add_edit_user_and_checkout_return(self) -> None:
         self.assertTrue(self.api.add_book("1984", "George Orwell", "ISBN-1")[0])
         self.assertTrue(self.api.add_user("Alice", "U1")[0])
@@ -47,10 +64,11 @@ class TestBridge(unittest.TestCase):
         self.assertTrue(self.api.return_book("ISBN-1")[0])
         self.assertTrue(self.api.remove_book("ISBN-1")[0])
 
-    def test_save_and_reload(self) -> None:
+    def test_save_backup_and_reload(self) -> None:
         self.api.add_book("Dune", "Frank Herbert", "ISBN-2")
         self.api.add_user("Bob", "U2")
         self.assertTrue(self.api.save())
+        self.assertTrue(self.api.create_backup()[0])
 
         reloaded = BibliothequeAPI(data_dir=self.tmp_dir.name)
         self.assertEqual(len(reloaded.get_all_books()), 1)

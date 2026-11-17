@@ -2,7 +2,8 @@
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import List, Optional, Tuple
+import shutil
+from typing import Dict, List, Optional, Tuple
 
 try:
     import bibliotheque_cpp
@@ -59,6 +60,16 @@ class BibliothequeAPI:
             self._users: List[UserDTO] = []
             self._load_fallback()
 
+    @staticmethod
+    def _to_book_dto(book) -> BookDTO:
+        return BookDTO(
+            title=book.getTitle(),
+            author=book.getAuthor(),
+            isbn=book.getISBN(),
+            is_available=book.getAvailability(),
+            borrower_id=book.getBorrowerId(),
+        )
+
     def _load_fallback(self) -> None:
         if self.books_file.exists():
             for line in self.books_file.read_text(encoding="utf-8").splitlines():
@@ -86,17 +97,34 @@ class BibliothequeAPI:
 
     def get_all_books(self) -> List[BookDTO]:
         if self.using_cpp:
-            return [
-                BookDTO(
-                    title=b.getTitle(),
-                    author=b.getAuthor(),
-                    isbn=b.getISBN(),
-                    is_available=b.getAvailability(),
-                    borrower_id=b.getBorrowerId(),
-                )
-                for b in self._library.getAllBooks()
-            ]
+            return [self._to_book_dto(b) for b in self._library.getAllBooks()]
         return list(self._books)
+
+    def get_available_books(self) -> List[BookDTO]:
+        if self.using_cpp:
+            return [self._to_book_dto(b) for b in self._library.getAvailableBooks()]
+        return [b for b in self._books if b.is_available]
+
+    def find_book_by_isbn(self, isbn: str) -> Optional[BookDTO]:
+        isbn = isbn.strip()
+        if self.using_cpp:
+            book = self._library.findBookByISBN(isbn)
+            return self._to_book_dto(book) if book is not None else None
+        return next((b for b in self._books if b.isbn == isbn), None)
+
+    def search_books_by_title(self, title: str) -> List[BookDTO]:
+        title = title.strip()
+        if self.using_cpp:
+            return [self._to_book_dto(b) for b in self._library.searchBooksByTitle(title)]
+        q = title.lower()
+        return [b for b in self._books if q in b.title.lower()]
+
+    def search_books_by_author(self, author: str) -> List[BookDTO]:
+        author = author.strip()
+        if self.using_cpp:
+            return [self._to_book_dto(b) for b in self._library.searchBooksByAuthor(author)]
+        q = author.lower()
+        return [b for b in self._books if q in b.author.lower()]
 
     def add_book(self, title: str, author: str, isbn: str) -> Tuple[bool, str]:
         title, author, isbn = title.strip(), author.strip(), isbn.strip()
@@ -231,6 +259,45 @@ class BibliothequeAPI:
         book.is_available = True
         book.borrower_id = ""
         return True, f"Livre {isbn} retourné."
+
+    def get_stats(self) -> Dict[str, int]:
+        if self.using_cpp:
+            return {
+                "total_books": int(self._library.getTotalBooks()),
+                "available_books": int(self._library.getAvailableBookCount()),
+                "checked_out_books": int(self._library.getCheckedOutBookCount()),
+                "total_users": len(self._library.getAllUsers()),
+            }
+        total = len(self._books)
+        available = sum(1 for b in self._books if b.is_available)
+        return {
+            "total_books": total,
+            "available_books": available,
+            "checked_out_books": total - available,
+            "total_users": len(self._users),
+        }
+
+    def create_backup(self) -> Tuple[bool, str]:
+        if self.using_cpp:
+            try:
+                self._file_manager.createBackup()
+                return True, "Fichiers de sauvegarde (.backup) créés."
+            except Exception as exc:
+                return False, f"Erreur lors de la sauvegarde : {exc}"
+
+        try:
+            created = False
+            if self.books_file.exists():
+                shutil.copyfile(self.books_file, str(self.books_file) + ".backup")
+                created = True
+            if self.users_file.exists():
+                shutil.copyfile(self.users_file, str(self.users_file) + ".backup")
+                created = True
+            if created:
+                return True, "Fichiers de sauvegarde (.backup) créés."
+            return False, "Aucun fichier de données à sauvegarder."
+        except OSError as exc:
+            return False, f"Erreur lors de la sauvegarde : {exc}"
 
     def save(self) -> bool:
         if self.using_cpp:
